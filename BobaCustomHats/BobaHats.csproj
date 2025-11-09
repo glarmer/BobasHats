@@ -10,6 +10,10 @@
             https://nuget.bepinex.dev/v3/index.json;
             https://nuget.samboy.dev/v3/index.json
         </RestoreAdditionalProjectSources>
+
+        <ManagedDir>C:\Program Files (x86)\Steam\steamapps\common\PEAK\PEAK_Data\Managed\</ManagedDir>
+
+        <NoWarn>CS0618</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,10 +28,7 @@
         <PackageReference Include="BepInEx.BaseLib" Version="5.4.21"/>
         <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0"/>
-        <PackageReference Include="Krafs.Publicizer" Version="2.3.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
         <PackageReference Include="UnityEngine.Modules" Version="6000.0.36" IncludeAssets="compile"/>
     </ItemGroup>
 
@@ -57,10 +58,13 @@
         <ZipDirectory DestinationFile="$(SolutionDir)BobaRat-BobaHats-.zip"
                       SourceDirectory="$(OutputPath)" Overwrite="true" />
     </Target>
-    
+
     <ItemGroup>
-        <Publicize Include="Assembly-CSharp" />
-        <Publicize Include="Zorro.Core.Runtime" />
+        <LocalReferences
+                Include="$(ManagedDir)*.dll"
+                Exclude="$(ManagedDir)Mono*.dll;$(ManagedDir)netstandard.dll;$(ManagedDir)System*.dll;$(ManagedDir)mscorlib.dll"/>
+        <Reference Include="@(LocalReferences)" Private="false" />
+        <Reference Include="$(ManagedDir)Assembly-CSharp.dll" Private="false" Publicize="true" />
     </ItemGroup>
 
     <PropertyGroup>
