@@ -29,7 +29,10 @@ public class Plugin : BaseUnityPlugin
     [NonSerialized]
     public bool HatsInserted;
 
-    private const int HatInsertIndex = 23;
+    private int HatInsertIndex = 0;
+
+    public int OverrideHatCount = 0;
+    public int BaseHatCount = 0;
 
     public void Awake()
     {
@@ -158,7 +161,20 @@ public class Plugin : BaseUnityPlugin
             Logger.LogError("CustomizationOptions.hats is not populated yet, not adding hats!");
             return;
         }
-
+        
+        if (HatInsertIndex == 0)
+        {
+            foreach (var fit in customization.fits)
+            {
+                if (fit.overrideHat)
+                    OverrideHatCount++;
+            }
+            
+            HatInsertIndex = customization.hats.Length - 1;
+            BaseHatCount = customization.hats.Length;
+            Logger.LogDebug($"HatInsertIndex set to {HatInsertIndex}, BaseHatCount set to {BaseHatCount}");
+        }
+        
         if (!customization.hats.Skip(HatInsertIndex).Any(x => HatNames.Contains(x.name)))
         {
             Logger.LogDebug("Adding hat CustomizationOptions.");
@@ -177,8 +193,8 @@ public class Plugin : BaseUnityPlugin
             }
 
             HatsInserted = true;
-            //customization.hats = customization.hats.Concat(newHatOptions).ToArray();
-            ArrayInsert(ref customization.hats, HatInsertIndex, newHatOptions);
+            customization.hats = customization.hats.Concat(newHatOptions).ToArray();
+            //ArrayInsert(ref customization.hats, HatInsertIndex, newHatOptions);
             Logger.LogDebug($"Completed adding hats to Customization Options.");
         }
 
@@ -246,8 +262,8 @@ public class Plugin : BaseUnityPlugin
                 newPlayerDummyHats.Add(renderer);
             }
 
-            //dummyHats = dummyHats.Concat(newPlayerDummyHats).ToArray();
-            ArrayInsert(ref dummyHats!, HatInsertIndex, newPlayerDummyHats);
+            dummyHats = dummyHats.Concat(newPlayerDummyHats).ToArray();
+            //ArrayInsert(ref dummyHats!, HatInsertIndex, newPlayerDummyHats);
             Logger.LogDebug($"Completed adding hats to Passport dummy.");
         }
 
@@ -415,8 +431,8 @@ public class Plugin : BaseUnityPlugin
             newPlayerWorldHats.Add(renderer);
         }
 
-        //customizationHats = customizationHats.Concat(newPlayerWorldHats).ToArray();
-        ArrayInsert(ref customizationHats!, HatInsertIndex, newPlayerWorldHats);
+        customizationHats = customizationHats.Concat(newPlayerWorldHats).ToArray();
+        //ArrayInsert(ref customizationHats!, HatInsertIndex, newPlayerWorldHats);
         Logger.LogDebug($"Completed adding hats to Character #{character.photonView.Owner.ActorNumber} '{character.name}'");
     }
 

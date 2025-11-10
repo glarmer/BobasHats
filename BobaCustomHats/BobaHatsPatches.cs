@@ -26,6 +26,18 @@ internal static class BobaHatsPatches
     private static ManualLogSource Logger => Plugin.Instance!.Logger;
 
 
+    [HarmonyPatch(typeof(PassportButton), nameof(PassportButton.SetButton))]
+    [HarmonyPostfix]
+    private static void SetButton(ref int ___currentIndex, CustomizationOption option) {
+        Plugin.Instance.Logger.LogInfo($"PassportButton.SetButton called with index {___currentIndex} and option {option?.name ?? "null"}. BaseHatCount: {Plugin.Instance.BaseHatCount}, OverrideHatCount: {Plugin.Instance.OverrideHatCount}");
+        if (option == null) return;
+        
+        if (option.type == Customization.Type.Hat && ___currentIndex >= Plugin.Instance.BaseHatCount) {
+            Plugin.Instance.Logger.LogInfo($"Adjusting hat index from {___currentIndex} to {___currentIndex + Plugin.Instance.OverrideHatCount}");
+            ___currentIndex += Plugin.Instance.OverrideHatCount;
+        }
+    }
+    
     [HarmonyPatch(typeof(SyncPersistentPlayerDataPackage), nameof(SyncPersistentPlayerDataPackage.SerializeData))]
     [HarmonyPostfix]
     public static void SyncPersistentPlayerDataPackageSerializeData(SyncPersistentPlayerDataPackage __instance, BinarySerializer binarySerializer)
@@ -77,7 +89,7 @@ internal static class BobaHatsPatches
             // custom hats might not be loaded, trigger an event and check again
             Logger.LogWarning($"Invalid hat index {currentHat} for player #{actorNumber}, custom hats may not be loaded yet!");
 
-            Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
+            //Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
         }
 
         // refresh hats variable after loading
@@ -289,7 +301,7 @@ internal static class BobaHatsPatches
     public static void CharacterCustomizationStartPrefix(CharacterCustomization __instance)
     {
         Logger.LogDebug($"CharacterCustomization.Start called");
-        Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
+        //Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
         var character = __instance._character;
         if (character == null) return;
         Plugin.BroadcastPluginEvent(nameof(Plugin.OnAddHatsForCharacter), character);
@@ -307,7 +319,7 @@ internal static class BobaHatsPatches
     {
         try
         {
-            Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
+            //Plugin.BroadcastPluginEvent(nameof(Plugin.OnLoadHats));
             var character = Character.localCharacter;
             if (character != null)
                 Plugin.BroadcastPluginEvent(nameof(Plugin.OnAddHatsForCharacter), character);
