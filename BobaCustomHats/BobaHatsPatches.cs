@@ -26,13 +26,22 @@ internal static class BobaHatsPatches
     private static ManualLogSource Logger => Plugin.Instance!.Logger;
 
 
+    // TODO: Remove unnecessary logging
     [HarmonyPatch(typeof(PassportButton), nameof(PassportButton.SetButton))]
     [HarmonyPostfix]
     private static void SetButton(ref int ___currentIndex, CustomizationOption option) {
         Plugin.Instance.Logger.LogInfo($"PassportButton.SetButton called with index {___currentIndex} and option {option?.name ?? "null"}. BaseHatCount: {Plugin.Instance.BaseHatCount}, OverrideHatCount: {Plugin.Instance.OverrideHatCount}");
         if (option == null) return;
         
-        if (option.type == Customization.Type.Hat && ___currentIndex >= Plugin.Instance.BaseHatCount) {
+        if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("MoreCustomizations", out var pluginInfo))
+        {
+            //TODO: Magic number
+            //TODO: Fix first 2
+            if (___currentIndex >= 36 + Plugin.Instance.OverrideHatCount && ___currentIndex < Plugin.Instance.BaseHatCount + Plugin.Instance.Hats.Length)
+            {
+                ___currentIndex -= Plugin.Instance.OverrideHatCount;
+            }
+        } else if (option.type == Customization.Type.Hat && ___currentIndex >= Plugin.Instance.BaseHatCount) {
             Plugin.Instance.Logger.LogInfo($"Adjusting hat index from {___currentIndex} to {___currentIndex + Plugin.Instance.OverrideHatCount}");
             ___currentIndex += Plugin.Instance.OverrideHatCount;
         }

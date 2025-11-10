@@ -33,13 +33,15 @@ public class Plugin : BaseUnityPlugin
 
     public int OverrideHatCount = 0;
     public int BaseHatCount = 0;
+    private Harmony _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 
     public void Awake()
     {
         Instance = this;
 
         Logger.LogInfo($"Plugin v{MyPluginInfo.PLUGIN_VERSION} is starting up.");
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BobaHatsPatches));
+        _harmony.PatchAll(typeof(BobaHatsPatches));
+        _harmony.PatchAll(typeof(MoreCustomizationsCompatPatch)); // TODO: Remove probably
         StartCoroutine(LoadHatsFromBundle());
     }
 
@@ -133,6 +135,51 @@ public class Plugin : BaseUnityPlugin
         return Character.localCharacter
                ?? GetCharacterByActorNumber(PhotonNetwork.LocalPlayer.ActorNumber);
     }
+    
+    private void TryReadMoreCustomizationsHats()
+        {
+            string otherPluginGuid = "MoreCustomizations";
+
+            if (!BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(otherPluginGuid, out var pluginInfo))
+            {
+                Logger.LogInfo("MoreCustomizations not detected, using existing hat counts.");
+                return;
+            }
+
+            Logger.LogInfo("Detected MoreCustomizations, attempting to sync hat values...");
+
+            try
+            {
+                var asm = pluginInfo.Instance.GetType().Assembly;
+                var mcType = asm.GetType("MoreCustomizations.MoreCustomizationsPlugin");
+                if (mcType == null)
+                {
+                    Logger.LogWarning("Could not find MoreCustomizationsPlugin type in assembly.");
+                    return;
+                }
+
+                var baseHatCountField = mcType.GetProperty("BaseHatCount", BindingFlags.Public | BindingFlags.Static);
+                var overrideHatCountField = mcType.GetProperty("OverrideHatCount", BindingFlags.Public | BindingFlags.Static);
+
+                if (baseHatCountField == null || overrideHatCountField == null)
+                {
+                    Logger.LogWarning("MoreCustomizationsPlugin missing expected properties.");
+                    return;
+                }
+
+                int baseHatCount = (int)(baseHatCountField.GetValue(null) ?? 0);
+                int overrideHatCount = (int)(overrideHatCountField.GetValue(null) ?? 0);
+
+                Logger.LogInfo($"Synced with MoreCustomizations: BaseHats: {baseHatCount}, OverrideHats: {overrideHatCount}");
+                
+                BaseHatCount = baseHatCount;
+                OverrideHatCount = overrideHatCount;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Failed to get hat counts from MoreCustomizations: {ex}");
+            }
+        }
 
     public void OnLoadHats()
     {
@@ -172,7 +219,8 @@ public class Plugin : BaseUnityPlugin
             
             HatInsertIndex = customization.hats.Length - 1;
             BaseHatCount = customization.hats.Length;
-            Logger.LogDebug($"HatInsertIndex set to {HatInsertIndex}, BaseHatCount set to {BaseHatCount}");
+            TryReadMoreCustomizationsHats();
+            Logger.LogInfo($"HatInsertIndex set to {HatInsertIndex}, BaseHatCount set to {BaseHatCount}");
         }
         
         if (!customization.hats.Skip(HatInsertIndex).Any(x => HatNames.Contains(x.name)))
@@ -193,7 +241,20 @@ public class Plugin : BaseUnityPlugin
             }
 
             HatsInserted = true;
-            customization.hats = customization.hats.Concat(newHatOptions).ToArray();
+            
+            // TODO: Evaluate if these if statements are necessary -> had issues with ArrayInsert if wanting to put at end of vanilla hats
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("MoreCustomizations", out var pluginInfo))
+            {
+                // TODO: Magic Number -> set to BaseHatCount, should be 36 or whatever the vanilla count is since MoreCustomizations runs first
+                HatInsertIndex = 36;
+                Logger.LogInfo("MoreCustomizations detected, using internal hat counts.");
+                ArrayInsert(ref customization.hats, HatInsertIndex, newHatOptions);
+            }
+            else
+            {
+                Logger.LogInfo("MoreCustomizations not detected, using internal hat counts.");
+                customization.hats = customization.hats.Concat(newHatOptions).ToArray();
+            }
             //ArrayInsert(ref customization.hats, HatInsertIndex, newHatOptions);
             Logger.LogDebug($"Completed adding hats to Customization Options.");
         }
@@ -262,7 +323,16 @@ public class Plugin : BaseUnityPlugin
                 newPlayerDummyHats.Add(renderer);
             }
 
-            dummyHats = dummyHats.Concat(newPlayerDummyHats).ToArray();
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("MoreCustomizations", out var pluginInfo))
+            {
+                Logger.LogInfo("MoreCustomizations detected, using internal hat counts.");
+                ArrayInsert(ref dummyHats!, HatInsertIndex, newPlayerDummyHats);
+            }
+            else
+            {
+                Logger.LogInfo("MoreCustomizations not detected, using internal hat counts.");
+                dummyHats = dummyHats.Concat(newPlayerDummyHats).ToArray();
+            }
             //ArrayInsert(ref dummyHats!, HatInsertIndex, newPlayerDummyHats);
             Logger.LogDebug($"Completed adding hats to Passport dummy.");
         }
@@ -430,9 +500,17 @@ public class Plugin : BaseUnityPlugin
 
             newPlayerWorldHats.Add(renderer);
         }
-
-        customizationHats = customizationHats.Concat(newPlayerWorldHats).ToArray();
-        //ArrayInsert(ref customizationHats!, HatInsertIndex, newPlayerWorldHats);
+        
+        if (BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue("MoreCustomizations", out var pluginInfo))
+        {
+            Logger.LogInfo("MoreCustomizations detected, using internal hat counts.");
+            ArrayInsert(ref customizationHats!, HatInsertIndex, newPlayerWorldHats);
+        }
+        else
+        {
+            Logger.LogInfo("MoreCustomizations not detected, using internal hat counts.");
+            customizationHats = customizationHats.Concat(newPlayerWorldHats).ToArray();
+        }
         Logger.LogDebug($"Completed adding hats to Character #{character.photonView.Owner.ActorNumber} '{character.name}'");
     }
 
