@@ -10,6 +10,7 @@ namespace BobaHats;
 
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+[BepInDependency(MoreCustomizationsGuid, BepInDependency.DependencyFlags.SoftDependency)]
 #pragma warning disable BepInEx002 // yes it does indeed inherit from BaseUnityPlugin (???)
 public class Plugin : BaseUnityPlugin
 #pragma warning restore BepInEx002
@@ -32,12 +33,14 @@ public class Plugin : BaseUnityPlugin
     private const int HatInsertIndex = 23;
     const string MoreCustomizationsGuid = "MoreCustomizations";
 
+    internal Harmony _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
+
     public void Awake()
     {
         Instance = this;
 
         Logger.LogInfo($"Plugin v{MyPluginInfo.PLUGIN_VERSION} is starting up.");
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BobaHatsPatches));
+        _harmony.PatchAll(typeof(BobaHatsPatches));
         StartCoroutine(LoadHatsFromBundle());
     }
 
