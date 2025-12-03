@@ -30,7 +30,7 @@
         </PackageReference>
         <PackageReference Include="UnityEngine.Modules" Version="6000.0.36" IncludeAssets="compile"/>
     </ItemGroup>
-
+    
     <ItemGroup>
         <Content Include="..\Unity\Boba's Custom Hats\AssetBundles\bobacustomhats*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -61,6 +61,7 @@
     <ItemGroup>
         <Publicize Include="Assembly-CSharp" />
         <Publicize Include="Zorro.Core.Runtime" />
+        <Publicize Include="MoreCustomizations" />
     </ItemGroup>
 
     <PropertyGroup>
