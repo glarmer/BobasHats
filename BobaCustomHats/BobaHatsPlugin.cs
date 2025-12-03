@@ -30,6 +30,7 @@ public class Plugin : BaseUnityPlugin
     public bool HatsInserted;
 
     private const int HatInsertIndex = 23;
+    const string MoreCustomizationsGuid = "MoreCustomizations";
 
     public void Awake()
     {
@@ -145,6 +146,14 @@ public class Plugin : BaseUnityPlugin
             Logger.LogError("No hats loaded, skipping instantiation!");
             return;
         }
+        
+        if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey(MoreCustomizationsGuid))
+        {
+            Logger.LogInfo("More Customizations detected, loading compatibility.");
+            MoreCustomizationsCompat.LoadHats();
+            return;
+        }
+        Logger.LogInfo("More Customizations not detected, skipping compatibility loading.");
 
         var customization = GetCustomizationSingleton();
         if (customization == null)
